@@ -1,27 +1,18 @@
 use nu_plugin::{serve_plugin, EvaluatedCall, JsonSerializer};
 use nu_plugin::{EngineInterface, Plugin, PluginCommand, SimplePluginCommand};
-use nu_protocol::{Category, LabeledError, Signature, Span, Type, Value};
+use nu_protocol::{Category, LabeledError, Record, Signature, Span, Value};
 use regex::Regex;
 use std::collections::HashMap;
-use std::error::Error;
 use std::process::{Command, Stdio};
 use std::str;
-use tabled::{
-    settings::{object::Columns, themes::Colorization, Alignment, Color, Style},
-    Table, Tabled,
-};
 
-#[derive(Tabled, Default)]
-#[tabled(rename_all = "PascalCase")]
+#[derive(Default)]
 struct HardwarePort {
     name: String,
-    #[tabled(rename = "IP Address")]
     ip_address: String,
     device: String,
     speed: String,
-    #[tabled(rename = "MAC Address")]
     mac_address: String,
-    #[tabled(skip)]
     service_order: u8,
 }
 
@@ -178,21 +169,14 @@ impl HardwarePortList {
     }
 }
 
-fn print_table(data: HardwarePortList) -> Result<(), Box<dyn Error>> {
-    let mut table = Table::new(data.ports);
-    table
-        .with(Style::rounded())
-        .with(Colorization::columns([
-            Color::FG_WHITE,
-            Color::FG_YELLOW,
-            Color::FG_GREEN,
-            Color::FG_BRIGHT_BLUE,
-            Color::FG_BRIGHT_MAGENTA,
-        ]))
-        .modify(Columns::new(3..4), Alignment::right());
-
-    println!("{}", table.to_string());
-    Ok(())
+fn map_port(hwport: HardwarePort, span: Span) -> Value {
+    let mut o = Record::with_capacity(6);
+    o.push("name", Value::string(hwport.name, span));
+    o.push("ip_address", Value::string(hwport.ip_address, span));
+    o.push("device", Value::string(hwport.device, span));
+    o.push("speed", Value::string(hwport.speed, span));
+    o.push("mac_address", Value::string(hwport.mac_address, span));
+    Value::record(o, span)
 }
 
 struct NetPlugin;
@@ -228,7 +212,7 @@ impl SimplePluginCommand for Net {
                 Some('a'),
             )
             .category(Category::Network)
-            .input_output_type(Type::Nothing, Type::String)
+            .input_output_type(Type::Nothing, Type::Table)
     }
 
     fn run(
@@ -239,23 +223,20 @@ impl SimplePluginCommand for Net {
         _input: &Value,
     ) -> Result<Value, LabeledError> {
         let all = call.has_flag("all")?;
+        let span = call.head;
 
         let hardware_ports = HardwarePortList::new()
             .in_service_order()
             .filter_ports(!all); // filter to active ports only, unless -all-ports
-        print_table(hardware_ports).expect("Failed to output table");
 
-        if all {
-            Ok(Value::String {
-                val: "All".to_string(),
-                internal_span: Span::unknown(),
-            })
-        } else {
-            Ok(Value::String {
-                val: "Pete".to_string(),
-                internal_span: Span::unknown(),
-            })
-        }
+        Ok(Value::list(
+            hardware_ports
+                .ports
+                .into_iter()
+                .map(|p| map_port(p, span))
+                .collect(),
+            span,
+        ))
     }
 }
 
