@@ -6,3 +6,5 @@ edition = "2021"
 [dependencies]
 nu-plugin = "0.102.0"
 nu-protocol = "0.102.0"
+regex = "1.11.1"
+tabled = "0.18.0"
