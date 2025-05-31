@@ -1,6 +1,6 @@
 use nu_plugin::{serve_plugin, EvaluatedCall, JsonSerializer};
 use nu_plugin::{EngineInterface, Plugin, PluginCommand, SimplePluginCommand};
-use nu_protocol::{Category, LabeledError, Record, Signature, Span, Value};
+use nu_protocol::{Category, LabeledError, Record, Signature, Span, Type, Value};
 use regex::Regex;
 use std::collections::HashMap;
 use std::process::{Command, Stdio};
@@ -212,7 +212,16 @@ impl SimplePluginCommand for Net {
                 Some('a'),
             )
             .category(Category::Network)
-            .input_output_type(Type::Nothing, Type::Table)
+            .input_output_type(
+                Type::Nothing,
+                Type::Table(Box::new([
+                    ("name".to_string(), Type::String),
+                    ("ip_address".to_string(), Type::String),
+                    ("device".to_string(), Type::String),
+                    ("speed".to_string(), Type::String),
+                    ("mac_address".to_string(), Type::String),
+                ])),
+            )
     }
 
     fn run(
