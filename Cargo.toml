@@ -1,10 +1,10 @@
 [package]
 name = "nu_plugin_net"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-nu-plugin = "0.109.1"
-nu-protocol = "0.109.1"
-regex = "1.12.2"
+nu-plugin = "0.112.2"
+nu-protocol = "0.112.2"
+regex = "1.12.3"
 tabled = "0.20.0"
